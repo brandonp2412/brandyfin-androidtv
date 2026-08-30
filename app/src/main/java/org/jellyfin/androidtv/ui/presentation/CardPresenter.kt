@@ -4,6 +4,7 @@ import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.compose.foundation.Image
+import coil3.compose.rememberAsyncImagePainter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -33,11 +35,11 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.constant.ImageType
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.base.Text
-import org.jellyfin.androidtv.ui.composable.AsyncImage
 import org.jellyfin.androidtv.ui.composable.item.ItemCard
 import org.jellyfin.androidtv.ui.composable.item.ItemCardBaseItemOverlay
 import org.jellyfin.androidtv.ui.composable.item.ItemPreview
@@ -53,6 +55,8 @@ import org.jellyfin.design.Tokens
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.koin.compose.koinInject
+
+private const val MARQUEE_FOCUS_DELAY_MS = 800
 
 class CardPresenter(
 	val showInfo: Boolean,
@@ -101,11 +105,10 @@ class CardPresenter(
 		init {
 			composeView.setContent {
 				val item by _item.collectAsState()
-				val focused by _focused.collectAsState()
 
 				CardViewHolderContent(
 					item = item,
-					focused = focused,
+					focused = _focused,
 					showInfo = showInfo,
 					imageType = imageType,
 					staticHeight = staticHeight,
@@ -114,7 +117,7 @@ class CardPresenter(
 			}
 
 			_focused.value = view.isFocused
-			composeView.onFocusChangeListener = { _, focused -> _focused.value = focused }
+			composeView.installFastFocusScale { focused -> _focused.value = focused }
 		}
 
 		fun bind(item: BaseRowItem) {
@@ -136,6 +139,17 @@ private data class BaseRowItemDisplayConfig(
 	val overrideShowInfo: Boolean? = null,
 	val scaleType: ImageView.ScaleType? = null,
 )
+
+private fun ImageView.ScaleType.toContentScale() = when (this) {
+	ImageView.ScaleType.CENTER_CROP -> ContentScale.Crop
+	ImageView.ScaleType.FIT_XY -> ContentScale.FillBounds
+	ImageView.ScaleType.CENTER -> ContentScale.None
+	ImageView.ScaleType.CENTER_INSIDE,
+	ImageView.ScaleType.FIT_CENTER,
+	ImageView.ScaleType.FIT_START,
+	ImageView.ScaleType.FIT_END,
+	ImageView.ScaleType.MATRIX -> ContentScale.Fit
+}
 
 private fun BaseRowItem.getDisplayConfig(imageType: ImageType, uniformAspect: Boolean): BaseRowItemDisplayConfig = when (baseRowType) {
 	BaseRowType.BaseItem -> {
@@ -280,7 +294,7 @@ private fun BaseRowItem.getDisplayConfig(imageType: ImageType, uniformAspect: Bo
 @Stable
 private fun CardViewHolderContent(
 	item: BaseRowItem?,
-	focused: Boolean,
+	focused: StateFlow<Boolean>,
 	showInfo: Boolean,
 	imageType: ImageType,
 	staticHeight: Int,
@@ -288,6 +302,7 @@ private fun CardViewHolderContent(
 ) {
 	val context = LocalContext.current
 	val localDensity = LocalDensity.current
+	val api = koinInject<ApiClient>()
 
 	val title = remember(item, context) { item?.getCardName(context) }
 	val subtitle = remember(item, context) { item?.getSubText(context) }
@@ -310,18 +325,18 @@ private fun CardViewHolderContent(
 		ItemCard(
 			image = {
 				if (image != null) {
-					val api = koinInject<ApiClient>()
-					AsyncImage(
-						url = image.getUrl(
+					val imageUrl = remember(image, api, size, localDensity) {
+						image.getUrl(
 							api,
 							maxWidth = with(localDensity) { size.width.roundToPx() },
 							maxHeight = with(localDensity) { size.height.roundToPx() },
-						),
-						blurHash = image.blurHash,
-						aspectRatio = aspectRatio,
-						scaleType = displayConfig.scaleType ?: ImageView.ScaleType.CENTER_CROP,
-						modifier = Modifier
-							.fillMaxSize()
+						)
+					}
+					Image(
+						painter = rememberAsyncImagePainter(imageUrl),
+						contentDescription = null,
+						contentScale = (displayConfig.scaleType ?: ImageView.ScaleType.CENTER_CROP).toContentScale(),
+						modifier = Modifier.fillMaxSize(),
 					)
 				} else if (item is GridButtonBaseRowItem && item.gridButton.imageRes != null) {
 					Image(
@@ -343,14 +358,12 @@ private fun CardViewHolderContent(
 			overlay = {
 				val showInfo = !usePreview && item.showCardInfoOverlay
 				item.baseItem?.let { baseItem ->
-					ItemCardBaseItemOverlay(
+					FocusAwareItemOverlay(
 						item = baseItem,
+						focused = focused,
 						footer = {
 							if (showInfo && title != null) {
-								val focusModifier = if (focused) Modifier.basicMarquee(
-									iterations = Int.MAX_VALUE,
-									initialDelayMillis = 0,
-								) else Modifier
+								val focusModifier = focusedMarqueeModifier(focused)
 
 								Box(
 									modifier = Modifier
@@ -379,11 +392,6 @@ private fun CardViewHolderContent(
 	}
 
 	if (usePreview) {
-		val focusModifier = if (focused) Modifier.basicMarquee(
-			iterations = Int.MAX_VALUE,
-			initialDelayMillis = 0,
-		) else Modifier
-
 		ItemPreview(
 			card = { card() },
 			title = title?.let { text ->
@@ -393,7 +401,7 @@ private fun CardViewHolderContent(
 						maxLines = 1,
 						overflow = TextOverflow.Ellipsis,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.then(focusModifier),
+						modifier = Modifier.then(focusedMarqueeModifier(focused)),
 					)
 				}
 			},
@@ -404,7 +412,7 @@ private fun CardViewHolderContent(
 						maxLines = 1,
 						overflow = TextOverflow.Ellipsis,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.then(focusModifier),
+						modifier = Modifier.then(focusedMarqueeModifier(focused)),
 					)
 				}
 			},
@@ -412,4 +420,27 @@ private fun CardViewHolderContent(
 	} else {
 		card()
 	}
+}
+
+@Composable
+private fun focusedMarqueeModifier(focused: StateFlow<Boolean>): Modifier {
+	val isFocused by focused.collectAsState()
+	return if (isFocused) Modifier.basicMarquee(
+		iterations = Int.MAX_VALUE,
+		initialDelayMillis = MARQUEE_FOCUS_DELAY_MS,
+	) else Modifier
+}
+
+@Composable
+private fun FocusAwareItemOverlay(
+	item: org.jellyfin.sdk.model.api.BaseItemDto,
+	focused: StateFlow<Boolean>,
+	footer: (@Composable () -> Unit)? = null,
+) {
+	val isFocused by focused.collectAsState()
+	ItemCardBaseItemOverlay(
+		item = item,
+		focused = isFocused,
+		footer = footer,
+	)
 }

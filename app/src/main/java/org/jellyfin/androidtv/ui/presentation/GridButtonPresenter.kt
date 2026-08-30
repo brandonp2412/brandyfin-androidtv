@@ -34,6 +34,7 @@ class GridButtonPresenter @JvmOverloads constructor(
 			isFocusable = true
 			isFocusableInTouchMode = true
 			descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+			installFastFocusScale()
 			addView(composeView)
 		}
 

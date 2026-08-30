@@ -47,7 +47,7 @@ public class HorizontalGridPresenter extends Presenter {
     private boolean mRoundedCornersEnabled = true;
 
     public HorizontalGridPresenter() {
-        this(FocusHighlight.ZOOM_FACTOR_LARGE);
+        this(FocusHighlight.ZOOM_FACTOR_NONE);
     }
 
     public HorizontalGridPresenter(int zoomFactor) {
@@ -181,10 +181,12 @@ public class HorizontalGridPresenter extends Presenter {
         vh.getGridView().setNumRows(mNumRows);
         vh.mInitialized = true;
 
-        vh.mItemBridgeAdapter.setWrapper(mWrapper);
         if (needsDefaultShadow() || areChildRoundedCornersEnabled()) {
+            vh.mItemBridgeAdapter.setWrapper(mWrapper);
             ShadowOverlayContainer.prepareParentForShadow(vh.getGridView());
             ((ViewGroup) vh.view).setClipChildren(false);
+        } else {
+            vh.mItemBridgeAdapter.setWrapper(null);
         }
         vh.getGridView().setFocusDrawingOrderEnabled(!isUsingZOrder());
         FocusHighlightHelper.setupBrowseItemFocusHighlight(vh.mItemBridgeAdapter,
