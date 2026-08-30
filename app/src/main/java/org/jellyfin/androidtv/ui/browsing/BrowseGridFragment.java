@@ -152,7 +152,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         mCardFocusScale = getResources().getFraction(R.fraction.card_scale_focus, 1, 1);
 
         if (mGridDirection.equals(GridDirection.VERTICAL))
-            setGridPresenter(new VerticalGridPresenter(FocusHighlight.ZOOM_FACTOR_LARGE, false));
+            setGridPresenter(new VerticalGridPresenter(FocusHighlight.ZOOM_FACTOR_NONE, false));
         else
             setGridPresenter(new HorizontalGridPresenter());
 
@@ -233,6 +233,10 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         }
         mGridView.setHorizontalSpacing(mGridItemSpacingHorizontal);
         mGridView.setVerticalSpacing(mGridItemSpacingVertical);
+        int prefetchCount = Math.min(Math.max(mCardsScreenStride, 4), 12);
+        mGridView.setInitialPrefetchItemCount(prefetchCount);
+        mGridView.setItemViewCacheSize(Math.min(Math.max(prefetchCount * 2, 8), 24));
+        mGridView.setExtraLayoutSpace(Math.round(256 * getResources().getDisplayMetrics().density));
         mGridView.setFocusable(true);
         binding.rowsFragment.removeAllViews();
         binding.rowsFragment.addView(mGridViewHolder.view);
@@ -259,6 +263,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         gridPresenter.setOnItemViewSelectedListener(mRowSelectedListener);
         gridPresenter.setOnItemViewClickedListener(mClickedListener);
         gridPresenter.setShadowEnabled(false);
+        gridPresenter.enableChildRoundedCorners(false);
         mGridPresenter = gridPresenter;
     }
 
@@ -272,6 +277,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         gridPresenter.setOnItemViewSelectedListener(mRowSelectedListener);
         gridPresenter.setOnItemViewClickedListener(mClickedListener);
         gridPresenter.setShadowEnabled(false);
+        gridPresenter.enableChildRoundedCorners(false);
         mGridPresenter = gridPresenter;
     }
 
@@ -582,7 +588,7 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
             mGridDirection = gridDirection;
 
             if (mGridDirection.equals(GridDirection.VERTICAL) && (mGridPresenter == null || !(mGridPresenter instanceof VerticalGridPresenter))) {
-                setGridPresenter(new VerticalGridPresenter(FocusHighlight.ZOOM_FACTOR_LARGE, false));
+                setGridPresenter(new VerticalGridPresenter(FocusHighlight.ZOOM_FACTOR_NONE, false));
             } else if (mGridDirection.equals(GridDirection.HORIZONTAL) && (mGridPresenter == null || !(mGridPresenter instanceof HorizontalGridPresenter))) {
                 setGridPresenter(new HorizontalGridPresenter());
             }
@@ -623,7 +629,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
             chunkSize = Math.min(mCardsScreenEst + mCardsScreenStride, 150); // cap at 150
             Timber.d("buildAdapter adjusting chunkSize to <%s> screenEst <%s>", chunkSize, mCardsScreenEst);
         }
-        chunkSize=100;
 
         switch (mRowDef.getQueryType()) {
             case NextUp:

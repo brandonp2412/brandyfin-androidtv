@@ -15,6 +15,7 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -59,6 +60,8 @@ import org.koin.android.ext.android.inject
 import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
+private const val FOCUS_SETTLE_DELAY_MS = 250L
+
 class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyListener {
 	private val api by inject<ApiClient>()
 	private val backgroundService by inject<BackgroundService>()
@@ -79,6 +82,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	// Data
 	private var currentItem: BaseRowItem? = null
 	private var currentRow: ListRow? = null
+	private var backgroundUpdateJob: Job? = null
 	private var justLoaded = true
 
 	// Special rows
@@ -235,6 +239,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	}
 
 	override fun onDestroy() {
+		backgroundUpdateJob?.cancel()
 		super.onDestroy()
 
 		mediaManager.removeAudioEventListener(this)
@@ -270,10 +275,15 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 			rowViewHolder: RowPresenter.ViewHolder?,
 			row: Row?,
 		) {
+			backgroundUpdateJob?.cancel()
+
 			if (item !is BaseRowItem) {
 				currentItem = null
-				//fill in default background
-				backgroundService.clearBackgrounds()
+				currentRow = null
+				backgroundUpdateJob = lifecycleScope.launch {
+					delay(FOCUS_SETTLE_DELAY_MS)
+					if (currentItem == null) backgroundService.clearBackgrounds()
+				}
 			} else {
 				currentItem = item
 				currentRow = row as ListRow
@@ -281,7 +291,10 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 				val itemRowAdapter = row.adapter as? ItemRowAdapter
 				itemRowAdapter?.loadMoreItemsIfNeeded(itemRowAdapter.indexOf(item))
 
-				backgroundService.setBackground(item.baseItem)
+				backgroundUpdateJob = lifecycleScope.launch {
+					delay(FOCUS_SETTLE_DELAY_MS)
+					if (currentItem === item) backgroundService.setBackground(item.baseItem)
+				}
 			}
 		}
 	}
