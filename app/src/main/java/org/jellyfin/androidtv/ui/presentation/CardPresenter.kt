@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -110,12 +112,11 @@ class CardPresenter(
 
 	private inner class CardViewHolder(composeView: ComposeView) : ViewHolder(composeView) {
 		private val _item = MutableStateFlow<BaseRowItem?>(null)
-		private val _focused = MutableStateFlow(false)
+		private val focused = mutableStateOf(false)
 
 		init {
 			composeView.setContent {
 				val item by _item.collectAsState()
-				val focused by _focused.collectAsState()
 
 				CardViewHolderContent(
 					item = item,
@@ -127,18 +128,18 @@ class CardPresenter(
 				)
 			}
 
-			_focused.value = view.isFocused
-			composeView.onFocusChangeListener = { _, focused -> _focused.value = focused }
+			focused.value = view.isFocused
+			composeView.onFocusChangeListener = { _, isFocused -> focused.value = isFocused }
 		}
 
 		fun bind(item: BaseRowItem) {
 			_item.value = item
-			_focused.value = view.isFocused
+			focused.value = view.isFocused
 		}
 
 		fun unbind() {
 			_item.value = null
-			_focused.value = false
+			focused.value = false
 		}
 	}
 }
@@ -323,7 +324,7 @@ private fun BaseRowItem.getDisplayConfig(imageType: ImageType, uniformAspect: Bo
 @Stable
 private fun CardViewHolderContent(
 	item: BaseRowItem?,
-	focused: Boolean,
+	focused: State<Boolean>,
 	showInfo: Boolean,
 	imageType: ImageType,
 	staticHeight: Int,
@@ -399,15 +400,12 @@ private fun CardViewHolderContent(
 			overlay = {
 				val showInfo = !usePreview && item.showCardInfoOverlay
 				item.baseItem?.let { baseItem ->
-					ItemCardBaseItemOverlay(
+					FocusAwareItemOverlay(
 						item = baseItem,
 						focused = focused,
 						footer = {
 							if (showInfo && title != null) {
-								val focusModifier = if (focused) Modifier.basicMarquee(
-									iterations = Int.MAX_VALUE,
-									initialDelayMillis = 0,
-								) else Modifier
+								val focusModifier = focusedMarqueeModifier(focused)
 
 								Box(
 									modifier = Modifier
@@ -436,11 +434,6 @@ private fun CardViewHolderContent(
 	}
 
 	if (usePreview) {
-		val focusModifier = if (focused) Modifier.basicMarquee(
-			iterations = Int.MAX_VALUE,
-			initialDelayMillis = 0,
-		) else Modifier
-
 		ItemPreview(
 			card = { card() },
 			title = title?.let { text ->
@@ -450,7 +443,7 @@ private fun CardViewHolderContent(
 						maxLines = 1,
 						overflow = TextOverflow.Ellipsis,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.then(focusModifier),
+						modifier = Modifier.then(focusedMarqueeModifier(focused)),
 					)
 				}
 			},
@@ -461,7 +454,7 @@ private fun CardViewHolderContent(
 						maxLines = 1,
 						overflow = TextOverflow.Ellipsis,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.then(focusModifier),
+						modifier = Modifier.then(focusedMarqueeModifier(focused)),
 					)
 				}
 			},
@@ -469,4 +462,23 @@ private fun CardViewHolderContent(
 	} else {
 		card()
 	}
+}
+
+@Composable
+private fun focusedMarqueeModifier(focused: State<Boolean>): Modifier = if (focused.value) Modifier.basicMarquee(
+	iterations = Int.MAX_VALUE,
+	initialDelayMillis = 0,
+) else Modifier
+
+@Composable
+private fun FocusAwareItemOverlay(
+	item: org.jellyfin.sdk.model.api.BaseItemDto,
+	focused: State<Boolean>,
+	footer: (@Composable () -> Unit)? = null,
+) {
+	ItemCardBaseItemOverlay(
+		item = item,
+		focused = focused.value,
+		footer = footer,
+	)
 }

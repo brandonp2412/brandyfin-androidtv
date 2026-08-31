@@ -61,6 +61,7 @@ import timber.log.Timber
 import kotlin.time.Duration.Companion.seconds
 
 private const val FOCUS_SETTLE_DELAY_MS = 250L
+private const val HOME_ROW_CACHE_SIZE = 12
 
 class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyListener {
 	private val api by inject<ApiClient>()
@@ -88,6 +89,15 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	// Special rows
 	private val notificationsRow by lazy { NotificationsHomeFragmentRow(lifecycleScope, notificationsRepository) }
 	private val nowPlaying by lazy { HomeFragmentNowPlayingRow(lifecycleScope, playbackManager, mediaManager) }
+
+	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+		super.onViewCreated(view, savedInstanceState)
+
+		verticalGridView.apply {
+			setItemViewCacheSize(HOME_ROW_CACHE_SIZE)
+			setExtraLayoutSpace(resources.displayMetrics.heightPixels * 2)
+		}
+	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
