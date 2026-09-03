@@ -6,6 +6,8 @@ on:
       - opened
       - ready_for_review
 
+permissions: {}
+
 jobs:
   review-add:
     name: Add to reviews project
@@ -16,4 +18,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.JF_BOT_TOKEN }}
           PROJECT_ID: ${{ secrets.PROJECT_ANDROID_TRIAGE }}
-        run: gh project item-add "$PROJECT_ID" --owner "${{ github.repository_owner }}" --url "${{ github.event.pull_request.html_url }}"
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          PULL_REQUEST_URL: ${{ github.event.pull_request.html_url }}
+        run: gh project item-add "$PROJECT_ID" --owner "$REPOSITORY_OWNER" --url "$PULL_REQUEST_URL"
