@@ -6,6 +6,8 @@ on:
     types:
       - synchronize
 
+permissions: {}
+
 jobs:
   triage:
     name: Triage
