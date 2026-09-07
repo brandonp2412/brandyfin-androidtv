@@ -159,9 +159,8 @@ public class VideoPlayerAdapter extends PlayerAdapter {
         org.jellyfin.sdk.model.api.BaseItemDto currentProgram = getCurrentlyPlayingItem().getCurrentProgram();
         if (currentProgram == null) {
             return false;
-        } else {
-            return currentProgram.getTimerId() != null;
         }
+        return currentProgram.getTimerId() != null;
     }
 
     org.jellyfin.sdk.model.api.BaseItemDto getCurrentlyPlayingItem() {

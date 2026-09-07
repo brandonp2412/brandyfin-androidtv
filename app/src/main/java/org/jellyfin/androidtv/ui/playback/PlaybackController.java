@@ -195,23 +195,22 @@ public class PlaybackController implements PlaybackControllerNotifiable {
     public MediaSourceInfo getCurrentMediaSource() {
         if (mCurrentStreamInfo != null && mCurrentStreamInfo.getMediaSource() != null) {
             return mCurrentStreamInfo.getMediaSource();
-        } else {
-            BaseItemDto item = getCurrentlyPlayingItem();
-            List<MediaSourceInfo> mediaSources = item.getMediaSources();
+        }
 
-            if (mediaSources == null || mediaSources.isEmpty()) {
-                return null;
-            } else {
-                // Prefer the media source with the same id as the item
-                for (MediaSourceInfo mediaSource : mediaSources) {
-                    if (item.getId().equals(UUIDSerializerKt.toUUIDOrNull(mediaSource.getId()))) {
-                        return mediaSource;
-                    }
-                }
-                // Or fallback to the first media source if none match
-                return mediaSources.get(0);
+        BaseItemDto item = getCurrentlyPlayingItem();
+        List<MediaSourceInfo> mediaSources = item.getMediaSources();
+        if (mediaSources == null || mediaSources.isEmpty()) {
+            return null;
+        }
+
+        // Prefer the media source with the same id as the item
+        for (MediaSourceInfo mediaSource : mediaSources) {
+            if (item.getId().equals(UUIDSerializerKt.toUUIDOrNull(mediaSource.getId()))) {
+                return mediaSource;
             }
         }
+        // Or fallback to the first media source if none match
+        return mediaSources.get(0);
     }
 
     public StreamInfo getCurrentStreamInfo() {

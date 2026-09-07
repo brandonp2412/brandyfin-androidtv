@@ -40,19 +40,18 @@ public class TimeUtils {
 
         if (hr > 0) {
             return String.format(DURATION_TIME_FORMAT_WITH_HOURS, hr, min, sec);
-        } else {
-            return String.format(DURATION_TIME_FORMAT_NO_HOURS, min, sec);
         }
+        return String.format(DURATION_TIME_FORMAT_NO_HOURS, min, sec);
     }
 
     public static String formatSeconds(Context context, int seconds) {
         if (seconds < SECS_PER_MIN) {
             return ContextExtensionsKt.getQuantityString(context, R.plurals.seconds, seconds);
-        } else if (seconds < SECS_PER_HR) {
-            return ContextExtensionsKt.getQuantityString(context, R.plurals.minutes, seconds / SECS_PER_MIN);
-        } else {
-            return ContextExtensionsKt.getQuantityString(context, R.plurals.hours, seconds / SECS_PER_HR);
         }
+        if (seconds < SECS_PER_HR) {
+            return ContextExtensionsKt.getQuantityString(context, R.plurals.minutes, seconds / SECS_PER_MIN);
+        }
+        return ContextExtensionsKt.getQuantityString(context, R.plurals.hours, seconds / SECS_PER_HR);
     }
 
     public static String getFriendlyDate(Context context, LocalDateTime date) {

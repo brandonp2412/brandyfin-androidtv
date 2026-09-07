@@ -318,11 +318,10 @@ public class VideoManager {
     public long getCurrentPosition() {
         if (mExoPlayer == null || !isPlaying()) {
             return lastExoPlayerPosition == -1 ? 0 : lastExoPlayerPosition;
-        } else {
-            long mExoPlayerCurrentPosition = mExoPlayer.getCurrentPosition();
-            lastExoPlayerPosition = mExoPlayerCurrentPosition;
-            return mExoPlayerCurrentPosition;
         }
+        long mExoPlayerCurrentPosition = mExoPlayer.getCurrentPosition();
+        lastExoPlayerPosition = mExoPlayerCurrentPosition;
+        return mExoPlayerCurrentPosition;
     }
 
     public boolean isPlaying() {
@@ -585,9 +584,8 @@ public class VideoManager {
     public float getPlaybackSpeed() {
         if (!isInitialized()) {
             return 1.0f;
-        } else {
-            return mExoPlayer.getPlaybackParameters().speed;
         }
+        return mExoPlayer.getPlaybackParameters().speed;
     }
 
     public void setPlaybackSpeed(float speed) {
