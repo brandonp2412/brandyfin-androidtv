@@ -337,7 +337,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
                     if (position != mSelectedPosition) {
                         mSelectedPosition = position;
                     }
-                    // Update the counter
                     updateCounter(position + 1);
                     if (position >= 0) {
                         mSelectedListener.onItemSelected(itemViewHolder, item, rowViewHolder, row);
@@ -611,7 +610,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
 
         Timber.d("buildAdapter cardHeight <%s> getCardWidthBy <%s> chunks <%s> type <%s>", mCardHeight, (int) getCardWidthBy(mCardHeight, mImageType, mFolder), mRowDef.getChunkSize(), mRowDef.getQueryType().toString());
 
-        // adapt chunk size if needed
         int chunkSize = mRowDef.getChunkSize();
         if (mCardsScreenEst > 0 && mCardsScreenEst >= chunkSize) {
             chunkSize = Math.min(mCardsScreenEst + mCardsScreenStride, 150); // cap at 150
@@ -711,7 +709,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
     }
 
     private void addTools() {
-        //Add tools
         int size = Utils.convertDpToPixel(requireContext(), 26);
 
         mSortButton = new ImageButton(requireContext(), null, 0, R.style.Button_Icon);
@@ -721,7 +718,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         mSortButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Create sort menu
                 PopupMenu sortMenu = new PopupMenu(getActivity(), binding.toolBar, Gravity.END);
                 for (Map.Entry<Integer, SortOption> entry : sortOptions.entrySet()) {
                     MenuItem item = sortMenu.getMenu().add(0, entry.getKey(), entry.getKey(), entry.getValue().name);
@@ -797,7 +793,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
         mLetterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Open letter jump popup
                 jumplistPopup.show();
             }
         });
@@ -921,7 +916,6 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
             if (!(item instanceof BaseRowItem)) {
                 mCurrentItem = null;
                 binding.title.setText(mainTitle);
-                //fill in default background
                 backgroundService.getValue().clearBackgrounds();
             } else {
                 mCurrentItem = (BaseRowItem) item;
