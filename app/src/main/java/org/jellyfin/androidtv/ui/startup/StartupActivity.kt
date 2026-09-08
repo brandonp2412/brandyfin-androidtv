@@ -126,7 +126,6 @@ class StartupActivity : FragmentActivity() {
 					openNextActivity()
 				}
 			} else {
-				// Clear audio queue in case left over from last run
 				mediaManager.clearAudioQueue()
 
 				val server = startupViewModel.getLastServer()
@@ -144,27 +143,19 @@ class StartupActivity : FragmentActivity() {
 
 		Timber.i("Determining next activity (action=${intent.action}, itemId=$itemId, itemIsUserView=$itemIsUserView)")
 
-		// Update background worker
 		with(ProcessLifecycleOwner.get().lifecycleScope) {
 			launch {
-				// Cancel all current workers
 				workManager.cancelAllWork().await()
-
-				// Recreate periodic workers
 				LeanbackChannelWorker.enqueue(workManager)
 			}
 
-			// Update WebSockets
 			launch { socketListener.updateSession() }
 		}
 
-		// Create destination
 		val destination = when {
-			// Search is requested
 			intent.action == Intent.ACTION_SEARCH -> Destinations.search(
 				query = intent.getStringExtra(SearchManager.QUERY)
 			)
-			// User view item is requested
 			itemId != null && itemIsUserView -> runCatching {
 				val item = withContext(Dispatchers.IO) {
 					api.userLibraryApi.getItem(itemId = itemId).content
@@ -173,16 +164,13 @@ class StartupActivity : FragmentActivity() {
 			}.onFailure { throwable ->
 				Timber.w(throwable, "Failed to retrieve item $itemId from server.")
 			}.getOrNull()
-			// Other item is requested
 			itemId != null -> Destinations.itemDetails(itemId)
-			// No destination requested, use default
 			else -> null
 		}
 
 		navigationRepository.reset(destination, true)
 
 		val intent = Intent(this, MainActivity::class.java)
-		// Clear navigation history
 		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_TASK_ON_HOME)
 		Timber.i("Opening next activity $intent")
 		startActivity(intent)

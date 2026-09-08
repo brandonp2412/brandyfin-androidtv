@@ -93,10 +93,8 @@ class LeanbackChannelWorker(
 	 * Check if the app can use Leanback features and is API level 26 or higher.
 	 */
 	private val isSupported = AndroidVersion.isAtLeastO &&
-		// Check for leanback support
-		context.packageManager.hasSystemFeature("android.software.leanback")
-		// Check for "android.media.tv" provider to workaround a false-positive in the previous check
-		&& context.packageManager.resolveContentProvider(TvContractCompat.AUTHORITY, 0) != null
+		context.packageManager.hasSystemFeature("android.software.leanback") &&
+		context.packageManager.resolveContentProvider(TvContractCompat.AUTHORITY, 0) != null
 
 	/**
 	 * Update all channels for the currently authenticated user.
@@ -107,15 +105,11 @@ class LeanbackChannelWorker(
 		// Retry later if no authenticated user is found
 		!api.isUsable -> Result.retry()
 		else -> try {
-			// Get next up episodes
 			val (resumeItems, nextUpItems) = getNextUpItems()
-			// Get latest media
 			val (latestEpisodes, latestMovies, latestMedia) = getLatestMedia()
 			val myMedia = getMyMedia()
-			// Delete current items from the channels
 			context.contentResolver.delete(TvContractCompat.PreviewPrograms.CONTENT_URI, null, null)
 
-			// Get channel URIs
 			val latestMediaChannel = getChannelUri(
 				"latest_media", Channel.Builder()
 					.setType(TvContractCompat.Channels.TYPE_PREVIEW)
@@ -154,7 +148,6 @@ class LeanbackChannelWorker(
 			)
 			val preferParentThumb = userPreferences[UserPreferences.seriesThumbnailsEnabled]
 
-			// Add new items
 			arrayOf(
 				nextUpItems to nextUpChannel,
 				latestMedia to latestMediaChannel,
@@ -164,24 +157,24 @@ class LeanbackChannelWorker(
 			).forEach { (items, channel) ->
 				if (channel == null) {
 					Timber.e("Skipping channel because it was not available")
-				} else {
-					items.map { item ->
-						createPreviewProgram(
-							channel,
-							item,
-							preferParentThumb
-						)
-					}.let {
-						context.contentResolver.bulkInsert(
-							TvContractCompat.PreviewPrograms.CONTENT_URI,
-							it.toTypedArray()
-						)
-					}
+					return@forEach
+				}
+
+				items.map { item ->
+					createPreviewProgram(
+						channel,
+						item,
+						preferParentThumb
+					)
+				}.let {
+					context.contentResolver.bulkInsert(
+						TvContractCompat.PreviewPrograms.CONTENT_URI,
+						it.toTypedArray()
+					)
 				}
 			}
 			updateWatchNext(resumeItems + nextUpItems)
 
-			// Success!
 			Result.success()
 		} catch (err: TimeoutException) {
 			Timber.w(err, "Server unreachable, trying again later")
@@ -215,7 +208,6 @@ class LeanbackChannelWorker(
 		}
 
 		if (uri == null) {
-			// Create new channel
 			uri = context.contentResolver.insert(
 				TvContractCompat.Channels.CONTENT_URI,
 				settings.toContentValues()
@@ -226,11 +218,9 @@ class LeanbackChannelWorker(
 				TvContractCompat.requestChannelBrowsable(context, ContentUris.parseId(uri))
 			}
 
-			// Save uri to shared preferences
 			store.edit { putString(name, uri?.toString()) }
 		}
 
-		// Update logo
 		if (uri != null) {
 			ResourcesCompat.getDrawable(context.resources, R.mipmap.app_icon, context.theme)?.let {
 				ChannelLogoUtils.storeChannelLogo(
@@ -251,7 +241,6 @@ class LeanbackChannelWorker(
 	private suspend fun getMyMedia(): List<BaseItemDto> {
 		val response by api.userViewsApi.getUserViews(includeHidden = false)
 
-		// Add new items
 		return response.items
 			.filter { userViewsRepository.isSupported(it.collectionType) }
 	}
