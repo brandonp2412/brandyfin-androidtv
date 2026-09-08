@@ -361,15 +361,12 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
     private double getCardWidthBy(final double cardHeight, ImageType imageType, BaseItemDto folder) {
         switch (imageType) {
             case POSTER:
-                // special handling for square posters
                 BaseItemKind fType = folder.getType();
-                if (fType == BaseItemKind.AUDIO || fType == BaseItemKind.GENRE || fType == BaseItemKind.MUSIC_ALBUM || fType == BaseItemKind.MUSIC_ARTIST || fType == BaseItemKind.MUSIC_GENRE) {
+                if (fType == BaseItemKind.AUDIO || fType == BaseItemKind.GENRE || fType == BaseItemKind.MUSIC_ALBUM || fType == BaseItemKind.MUSIC_ARTIST || fType == BaseItemKind.MUSIC_GENRE ||
+                        (fType == BaseItemKind.COLLECTION_FOLDER && CollectionType.MUSIC.equals(folder.getCollectionType()))) {
                     return cardHeight;
-                } else if (fType == BaseItemKind.COLLECTION_FOLDER && CollectionType.MUSIC.equals(folder.getCollectionType())) {
-                    return cardHeight;
-                } else {
-                    return cardHeight * ImageHelper.ASPECT_RATIO_2_3;
                 }
+                return cardHeight * ImageHelper.ASPECT_RATIO_2_3;
             case THUMB:
                 return cardHeight * ImageHelper.ASPECT_RATIO_16_9;
             case BANNER:
@@ -382,15 +379,12 @@ public class BrowseGridFragment extends Fragment implements View.OnKeyListener {
     private double getCardHeightBy(final double cardWidth, ImageType imageType, BaseItemDto folder) {
         switch (imageType) {
             case POSTER:
-                // special handling for square posters
                 BaseItemKind fType = folder.getType();
-                if (fType == BaseItemKind.AUDIO || fType == BaseItemKind.GENRE || fType == BaseItemKind.MUSIC_ALBUM || fType == BaseItemKind.MUSIC_ARTIST || fType == BaseItemKind.MUSIC_GENRE) {
+                if (fType == BaseItemKind.AUDIO || fType == BaseItemKind.GENRE || fType == BaseItemKind.MUSIC_ALBUM || fType == BaseItemKind.MUSIC_ARTIST || fType == BaseItemKind.MUSIC_GENRE ||
+                        (fType == BaseItemKind.COLLECTION_FOLDER && CollectionType.MUSIC.equals(folder.getCollectionType()))) {
                     return cardWidth;
-                } else if (fType == BaseItemKind.COLLECTION_FOLDER && CollectionType.MUSIC.equals(folder.getCollectionType())) {
-                    return cardWidth;
-                } else {
-                    return cardWidth / ImageHelper.ASPECT_RATIO_2_3;
                 }
+                return cardWidth / ImageHelper.ASPECT_RATIO_2_3;
             case THUMB:
                 return cardWidth / ImageHelper.ASPECT_RATIO_16_9;
             case BANNER:
